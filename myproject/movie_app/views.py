@@ -1,11 +1,15 @@
+from allauth.account.internal.userkit import user_display
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import viewsets, generics, status
+from rest_framework import viewsets, generics, status, permissions
 from rest_framework.filters import SearchFilter, OrderingFilter
 
 from .models import (UserProfile, Country, Director, Actor, Genre,Movie,Rating,Favorite,FavoriteMovie,History,MovieLanguages,Moments)
-from .serializers import (UserProfileSerializer, CountrySerializer, MovieSerializer, DirectorSerializer,
-                          ActorSerializer, FavoriteSerializer, MovieLanguagesSerializer, HistorySerializer,
-                          GenreSerializer, RatingSerializer, MomentsSerializer, FavoriteMovieSerializer,
+from .serializers import (UserProfileSerializer, CountryListSerializer, CountryDetailSerializer,
+                          MovieListSerializer, MovieDetailSerializer,
+                          DirectorListSerializer, DirectorDetailSerializer,
+                          ActorListSerializer, ActorDetailSerializer, FavoriteSerializer,
+                          MovieLanguagesSerializer,HistorySerializer,
+                          GenreListSerializer, GenreDetailSerializer, RatingSerializer, MomentsSerializer, FavoriteMovieSerializer,
                           UserSerializer, LoginSerializer, )
 
 from .filter import MovieFilter
@@ -15,6 +19,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.views import APIView
 from tokenize import TokenError
+from .permission import CheckStatus, RatingPermission
 
 
 class RegisterView(generics.CreateAPIView):
@@ -58,34 +63,64 @@ class UserProfileViewSet(viewsets.ModelViewSet):
     queryset = UserProfile.objects.all()
     serializer_class = UserProfileSerializer
 
+    def get_queryset(self):
+        return UserProfile.objects.filter(id = self.request.user.id)
+
 class CountryListAPIView(generics.ListAPIView):
     queryset = Country.objects.all()
-    serializer_class = CountrySerializer
+    serializer_class = CountryListSerializer
 
-class MovieViewSet(viewsets.ModelViewSet):
+class CountryDetailAPIView(generics.RetrieveAPIView):
+    queryset = Country.objects.all()
+    serializer_class = CountryDetailSerializer
+
+
+class MovieListAPIView(generics.ListAPIView):
     queryset = Movie.objects.all()
-    serializer_class = MovieSerializer
+    serializer_class = MovieListSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
     filterset_class = MovieFilter
     search_fields = ['movie_name']
     ordering_fields = ['year']
     pagination_class = MovieSetPagination
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly,]
 
+
+
+
+
+class MovieDetailAPIView(generics.RetrieveAPIView):
+        queryset = Movie.objects.all()
+        serializer_class = MovieDetailSerializer
+        permission_classes = [CheckStatus]
 
 
 
 
 class DirectorListAPIView(generics.ListAPIView):
     queryset = Director.objects.all()
-    serializer_class = DirectorSerializer
+    serializer_class = DirectorListSerializer
+
+class DirectorDetailAPIView(generics.RetrieveAPIView):
+    queryset = Director.objects.all()
+    serializer_class = DirectorDetailSerializer
 
 class ActorListAPIView(generics.ListAPIView):
     queryset = Actor.objects.all()
-    serializer_class = ActorSerializer
+    serializer_class = ActorListSerializer
+
+class ActorDetailAPIView(generics.RetrieveAPIView):
+    queryset = Actor.objects.all()
+    serializer_class = ActorDetailSerializer
 
 class GenreListAPIView(generics.ListAPIView):
     queryset = Genre.objects.all()
-    serializer_class = GenreSerializer
+    serializer_class = GenreListSerializer
+
+class GenreDetailAPIView(generics.RetrieveAPIView):
+    queryset = Genre.objects.all()
+    serializer_class = GenreDetailSerializer
+
 
 class HistoryListAPIView(generics.ListAPIView):
     queryset = History.objects.all()
@@ -94,6 +129,7 @@ class HistoryListAPIView(generics.ListAPIView):
 class RatingViewSet(viewsets.ModelViewSet):
     queryset = Rating.objects.all()
     serializer_class = RatingSerializer
+    permission_classes = [RatingPermission]
 
 class FavoriteViewSet(viewsets.ModelViewSet):
     queryset = Favorite.objects.all()
